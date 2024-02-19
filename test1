@@ -1,0 +1,39 @@
+#!/usr/bin/perl #imprescindible para que S.O use Perl para interpretar el script
+use strict; #directivas de control
+use warnings; 
+use IO::Socket::INET; #añadimos el modulo para trabajar con sockets de red (previamente instalado)
+
+# Configuramos el servidor
+my $host = '127.0.0.1'; #inicializo variables
+my $port = 8080;
+my $socket = IO::Socket::INET->new( #constructor socket
+    LocalHost => $host,
+    LocalPort => $port,
+    Proto     => 'tcp',
+    Listen    => SOMAXCONN, #max permitido por S.O para cantidad de conexiones pendientes
+    Reuse     => 1 #especificamos que se permite reutilizar la dirección del socket (permite reiniciar rapidamente el server)
+) or die "No se pudo iniciar el servidor: $!\n"; 
+
+print "Servidor escuchando en $host:$port\n";
+
+# Manejamos las conexiones entrantes
+while (my $client_socket = $socket->accept()) { # bloquea el script hasta que se recibe una conexión entrante
+    my $client_address = $client_socket->peerhost(); #almaceno ip del host entrante (con un metodo del constructor utilizado)
+    my $client_port    = $client_socket->peerport(); #almaceno puerto del host entrante ("")
+    print "Conexión entrante de $client_address:$client_port\n"; #muestro en pantalla quien se ha conectado
+
+    # Leemos datos del cliente
+    my $data = ""; #inicializo la variable donde voy a guardar los datos recibidos
+    $client_socket->recv($data, 1024); #recv -> metodo para enviar un mensaje en un socket
+    chomp $data; #eliminamos el posible salto de línea o caracteres no deseados
+    print "Datos recibidos del cliente: $data\n"; #mostramos en pantalla lo que hemos recibido
+
+    # Invertimos los datos
+    my $reversed_data = reverse $data; #reinvierto los datos con la funcion reverse();
+
+    # Enviamos datos invertidos al cliente
+    $client_socket->send($reversed_data); #utilizamos el metodo send() del socket para enviar los datos invertidos
+    shutdown($client_socket, 1); # cerramos el socket de escritura
+}
+
+$socket->close(); #una vez cerrada la conexión con el cliente, cerramos el socket del server
